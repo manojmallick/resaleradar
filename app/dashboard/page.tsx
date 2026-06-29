@@ -6,6 +6,8 @@ import { ItemCard } from '@/components/item-card'
 import { getItemsOrMock } from '@/lib/queries'
 import { formatPrice } from '@/lib/platform'
 
+export const dynamic = 'force-dynamic' // always reflect the live DB
+
 export default async function DashboardPage() {
   const { data: items } = await getItemsOrMock()
   const totalValue = items.reduce((sum, item) => sum + item.recommendedPrice, 0)

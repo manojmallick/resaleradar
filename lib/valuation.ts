@@ -49,7 +49,7 @@ export async function valuateItem(category: string, embedding: number[]): Promis
             MIN(sold_price)                                        AS low,
             PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sold_price) AS median,
             MAX(sold_price)                                        AS high,
-            AVG(EXTRACT(epoch FROM (sold_date - listed_date)) / 86400) AS avg_days_to_sell
+            AVG(sold_date - listed_date)                          AS avg_days_to_sell  -- DATE - DATE = integer days
      FROM (
        SELECT platform, source, sold_price, sold_date, listed_date
        FROM sold_comparables

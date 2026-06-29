@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "db:schema": "node --env-file=.env.local scripts/run-sql.mjs db/schema.sql",
     "db:seed": "node --env-file=.env.local scripts/seed.mjs",
-    "db:reset": "node --env-file=.env.local scripts/run-sql.mjs db/schema.sql && node --env-file=.env.local scripts/seed.mjs"
+    "db:seed:local": "node --env-file=.env.local scripts/seed-local.mjs",
+    "db:reset": "node --env-file=.env.local scripts/run-sql.mjs db/schema.sql && node --env-file=.env.local scripts/seed.mjs",
+    "db:reset:local": "node --env-file=.env.local scripts/run-sql.mjs db/schema.sql && node --env-file=.env.local scripts/seed-local.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.658.0",
