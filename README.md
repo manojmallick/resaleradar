@@ -96,6 +96,70 @@ npm run dev
 
 `npm run db:reset` re-applies the schema and re-seeds.
 
+## Environment variables
+
+Copy `.env.example` to `.env.local`. Without a database or Bedrock the UI falls back to mock data.
+
+| Variable | Description |
+|---|---|
+| `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` | Aurora PostgreSQL connection (preferred, injected by the Vercel Aurora integration) |
+| `AWS_ROLE_ARN` | IAM role used for password-less DB auth through Vercel OIDC. Locally, `vercel env pull .env.local` adds a short-lived `VERCEL_OIDC_TOKEN` |
+| `DATABASE_URL` | Fallback: plain Postgres connection string (local Postgres or generic Aurora) |
+| `PGSSLMODE` | `require` for Aurora, `disable` for a local non-TLS Postgres |
+| `AWS_REGION` | Default AWS region (`us-east-1`) |
+| `BEDROCK_REGION` | Optional: region where Bedrock model access is granted, if different from `AWS_REGION` |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | Credentials with `bedrock:InvokeModel` for local seeding (not needed on Vercel with OIDC) |
+| `BEDROCK_LLM_MODEL_ID` | Claude model for vision and listing copy |
+| `BEDROCK_EMBED_MODEL_ID` | Embedding model, default `amazon.titan-embed-image-v1` |
+| `EMBED_DIM` | Embedding size, default `1024`. Must match `vector(N)` in `db/schema.sql` |
+| `DEMO_USER_EMAIL` | Demo account email, default `demo@resaleradar.app` |
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the dev server on `http://localhost:3000` |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run lint` | ESLint |
+| `npm run db:schema` | Create tables and enable pgvector |
+| `npm run db:seed` | Embed sold comparables with Bedrock and load them |
+| `npm run db:reset` | `db:schema` then `db:seed` |
+| `npm run db:seed:local` | Seed **without Bedrock**: deterministic pseudo-embeddings, so pgvector search and the velocity query still run for real |
+| `npm run db:reset:local` | `db:schema` then `db:seed:local` |
+
+## Running without AWS
+
+- **UI only:** `npm install && npm run dev`. With nothing configured, pages render mock data from `lib/data.ts`.
+- **Real database, no Bedrock:** point `DATABASE_URL` at any Postgres with pgvector, then `npm run db:reset:local`. Photo identification still needs Bedrock; the seeded comparables use placeholder embeddings, so similarity between real photos is not meaningful in this mode.
+
+## Project structure
+
+```
+app/                 Pages (home, results/[itemId], dashboard, pricing) and API routes
+app/api/             identify, value, listing, track
+components/          UI: upload dropzone, valuation card, price-range bar, listing generator...
+lib/
+├── vision.ts        Bedrock Claude: photo to brand, model, condition
+├── embeddings.ts    Bedrock Titan multimodal embeddings
+├── valuation.ts     pgvector kNN + velocity aggregation (the core query)
+├── listing.ts       Listing copy generation
+├── queries.ts, db.ts, context.ts   Data access, IAM/URL connection, demo user
+└── data.ts          Shared types and mock fallback data
+db/                  schema.sql and the sold-comparables seed data
+scripts/             Schema runner, Bedrock seed, local seed
+```
+
+Tables: `users`, `items`, `item_embeddings`, `sold_comparables`, `valuations`, `price_watches`, `listings`.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| "No database configured" | Neither the Aurora variables nor `DATABASE_URL` is set |
+| Vector dimension errors | `EMBED_DIM` doesn't match `vector(N)` in `db/schema.sql`; re-run `db:schema` after changing it |
+| Bedrock `AccessDenied` or model not found | Model access isn't enabled in that region; set `BEDROCK_REGION` or request access in the Bedrock console |
+| Seeding is throttled | Use `npm run db:seed:local` |
+
 ## Stack
 
 - **Next.js 16** (App Router) on **Vercel**
